@@ -8,6 +8,7 @@ namespace Catan.ResourcePhase
     {
         public ResourceType type;
         public int amount;
+        public Texture2D texture;
 
         public enum ResourceType
         {
@@ -16,7 +17,8 @@ namespace Catan.ResourcePhase
             Grain,
             Wood,
             Brick,
-            Ore
+            Ore,
+            None
         }
 
         public Resource(ResourceType type, int amount)

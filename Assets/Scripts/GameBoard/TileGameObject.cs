@@ -1,3 +1,4 @@
+using Catan.GameManagement;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -16,6 +17,13 @@ namespace Catan.GameBoard
 
         public int xIndex;
         public int yIndex;
+        public int xCoord;
+        public int yCoord;
+
+        public void OnMouseDown()
+        {
+            GameObject.Find("Game Manager").GetComponent<InteractionManager>().TileClicked(this, xIndex, yIndex);
+        }
 
         public void SetDiceValue(int value)
         {

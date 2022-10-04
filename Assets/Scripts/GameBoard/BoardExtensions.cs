@@ -25,7 +25,7 @@ namespace Catan.GameBoard
         /// <remarks></remarks>
         public static (int, int) VertexAboveVertex(this TileVertex[][] vertices, int i, int j)
         {
-            if (!vertices[i][j].up)
+            if (vertices[i][j].up)
             {
                 return (-1, -1);
             }
@@ -39,10 +39,10 @@ namespace Catan.GameBoard
 
             try
             {
-                TileVertex test = vertices[i + 1][v];
+                TileVertex test = vertices[i - 1][v];
                 if (test != null)
                 {
-                    return (i + 1, v);
+                    return (i - 1, v);
                 }
             }
             catch { }
@@ -65,7 +65,7 @@ namespace Catan.GameBoard
             {
                 return (-1, -1);
             }
-
+            
             int v = vertices.ConvertVertical(j, i, i + 1);
 
             if (v == -1)
@@ -75,7 +75,7 @@ namespace Catan.GameBoard
 
             try
             {
-                TileVertex test = vertices[i+1][v];
+                TileVertex test = vertices[i + 1][v];
                 if (test != null)
                 {
                     return (i + 1, v);
@@ -149,7 +149,14 @@ namespace Catan.GameBoard
         {
             int ycoord = vertices[i0][x].yCoord;
 
-            if (vertices[i1].Count() < 1)
+            try
+            {
+                if (vertices[i1].Count() < 1)
+                {
+                    return -1;
+                }
+            }
+            catch
             {
                 return -1;
             }
@@ -162,7 +169,7 @@ namespace Catan.GameBoard
 
             return shifted.yDataIndex;
         }
-
+        
         /// <summary>
         ///     Takes the location of a vertex in DATA FORM and converts it to the location of the tile above the vertex
         /// </summary>
@@ -170,20 +177,76 @@ namespace Catan.GameBoard
         /// <param name="tiles"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
+        /// <param name="max"></param>
         /// <returns>
         ///     Integer tuple location of found tile in DATA FORM, else (-1, -1)
         /// </returns>
         public static (int, int) TileAboveVertex(this TileVertex[][] vertices, Tile[][] tiles, int i, int j)
         {
+            int max = 0;
+            for (int k = 0; k < tiles.Length; k++)
+            {
+                if (tiles[k].Length > max)
+                {
+                    max = tiles[k].Length;
+                }
+            }
+            max += 2;
+
+            return vertices.TileAboveVertex(tiles, i, j, max);
+        }
+
+        /// <summary>
+        ///     Takes the location of a vertex in DATA FORM and converts it to the location of the tile below the vertex
+        /// </summary>
+        /// <param name="vertices"></param>
+        /// <param name="tiles"></param>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        /// <param name="j"></param>
+        /// <returns>
+        ///     Integer tuple location of found tile in DATA FORM, else (-1, -1)
+        /// </returns>
+        public static (int, int) TileBelowVertex(this TileVertex[][] vertices, Tile[][] tiles, int i, int j)
+        {
+            int max = 0;
+            for (int k = 0; k < tiles.Length; k++)
+            {
+                if (tiles[k].Length > max)
+                {
+                    max = tiles[k].Length;
+                }
+            }
+            max += 2;
+
+            return vertices.TileBelowVertex(tiles, i, j, max);
+        }
+        /// <summary>
+        ///     Takes the location of a vertex in DATA FORM and converts it to the location of the tile above the vertex
+        /// </summary>
+        /// <param name="vertices"></param>
+        /// <param name="tiles"></param>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        /// <param name="max"></param>
+        /// <returns>
+        ///     Integer tuple location of found tile in DATA FORM, else (-1, -1)
+        /// </returns>
+        public static (int, int) TileAboveVertex(this TileVertex[][] vertices, Tile[][] tiles, int i, int j, int max)
+        {
             if (!vertices[i][j].up) return (-1, -1);
 
             int xc = vertices[i][j].xCoord;
             int yc = vertices[i][j].yCoord;
-            
+
+            // Subtracts 1 if row and max row length have certain parity
+            int smallOffset = (max % 2 == 1 ? (i + 1) % 2 : (i) % 2);
+
             int x = xc - 1;
-            int y = (int)(yc / 2) - 1;
+            int y = (int)(yc / 2) - 1 - smallOffset;
 
             (int xout, int yout) = tiles.GetTileDataCoord(x, y);
+
             return (xout, yout);
         }
 
@@ -194,18 +257,22 @@ namespace Catan.GameBoard
         /// <param name="tiles"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
+        /// <param name="j"></param>
         /// <returns>
         ///     Integer tuple location of found tile in DATA FORM, else (-1, -1)
         /// </returns>
-        public static (int, int) TileBelowVertex(this TileVertex[][] vertices, Tile[][] tiles, int i, int j)
+        public static (int, int) TileBelowVertex(this TileVertex[][] vertices, Tile[][] tiles, int i, int j, int max)
         {
             if (vertices[i][j].up) return (-1, -1);
 
             int xc = vertices[i][j].xCoord;
             int yc = vertices[i][j].yCoord;
 
+            // Subtracts 1 if row and max row length have certain parity
+            int smallOffset = (max % 2 == 0 ? (i + 1) % 2 : (i) % 2);
+
             int x = xc;
-            int y = (int)(yc / 2) - 1;
+            int y = (int)(yc / 2) - 1 - smallOffset;
 
             (int xout, int yout) = tiles.GetTileDataCoord(x, y);
             return (xout, yout);
@@ -353,6 +420,71 @@ namespace Catan.GameBoard
             return (i * 2, j - 1);
         }
 
+        public static (int, int)[] AdjacentRoadsToVertex(this TileVertex[][] vertices, Road[][] roads, (int, int) vertex)
+        {
+            (int, int) above = vertices.RoadAboveVertex(roads, vertex.Item1, vertex.Item2);
+            (int, int) below = vertices.RoadBelowVertex(roads, vertex.Item1, vertex.Item2);
+            (int, int) left = vertices.RoadLeftOfVertex(roads, vertex.Item1, vertex.Item2);
+            (int, int) right = vertices.RoadRightOfVertex(roads, vertex.Item1, vertex.Item2);
+
+            List<(int, int)> output = new List<(int, int)>();
+            if (above != (-1, -1)) output.Add(above);
+            if (below != (-1, -1)) output.Add(below);
+            if (left != (-1, -1)) output.Add(left);
+            if (right != (-1, -1)) output.Add(right);
+
+            return output.ToArray();
+        }
+
+        public static (int, int)[] AdjacentVerticesToRoad(this Road[][] roads, TileVertex[][] vertices, (int, int) road)
+        {
+            int i = road.Item1;
+            int j = road.Item2;
+            (int, int)[] arr = new (int, int)[2];
+
+            if (j >= vertices[i / 2].Length)
+            {
+                arr[0] = (-1, -1);
+                arr[1] = (-1, -1);
+            }
+
+            if (vertices[i / 2][j] == null)
+            {
+                arr[0] = (-1, -1);
+                arr[1] = (-1, -1);
+            }
+
+            // Case when road is running left-right
+            if (i % 2 == 0)
+            {
+                arr[0] = (i / 2, j);
+                arr[1] = (i / 2, j + 1);
+            }
+            // Case when road is running up-down
+            else
+            {
+                arr[0] = (-1, -1);
+                arr[1] = (-1, -1);
+                for (int k = 0; k < vertices[i / 2].Length; k++)
+                {
+                    if (vertices.RoadBelowVertex(roads, i/2, k) == road)
+                    {
+                        arr[0] = (i / 2, k);
+                    }
+                }
+
+                for (int k = 0; k < vertices[i / 2 + 1].Length; k++)
+                {
+                    if (vertices.RoadAboveVertex(roads, i / 2 + 1, k) == road)
+                    {
+                        arr[1] = (i / 2 + 1, k);
+                    }
+                }
+            }
+
+            return arr;
+        }
+
         /// <summary>
         ///     Converts a tile coordinate in WORLD FORM to DATA FORM
         /// </summary>
@@ -461,6 +593,11 @@ namespace Catan.GameBoard
         {
             r = Mathf.Deg2Rad * r;
             return new Vector3(r * Mathf.Cos(theta), 0, r * Mathf.Sin(theta));
+        }
+
+        public static bool Valid(this (int, int) point)
+        {
+            return point != (-1, -1);
         }
     }
 }
